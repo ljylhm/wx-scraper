@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,8 @@ interface ErrorDetails {
   bodyPreview?: string;
 }
 
-export default function ScraperPage() {
+// 包装使用useSearchParams的组件
+function ScraperContent() {
   const searchParams = useSearchParams();
   
   // 从URL参数中获取初始值
@@ -404,5 +405,24 @@ export default function ScraperPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// 加载状态组件
+function LoadingState() {
+  return (
+    <div className="flex min-h-screen p-6 items-center justify-center">
+      <div className="text-center">
+        <p className="text-lg">加载中...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function ScraperPage() {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <ScraperContent />
+    </Suspense>
   );
 } 
