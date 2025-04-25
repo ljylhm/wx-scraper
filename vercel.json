@@ -2,8 +2,8 @@
   "crons": [
     {
       "path": "/api/login135",
-      "schedule": "0 */6 * * *",
-      "maxDuration": 60
+      "schedule": "0 0 * * *",
+      "maxDuration": 10
     }
   ]
 } 
