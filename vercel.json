@@ -1,9 +1,13 @@
 {
+  "functions": {
+    "api/login135": {
+      "maxDuration": 10
+    }
+  },
   "crons": [
     {
       "path": "/api/login135",
-      "schedule": "0 0 * * *",
-      "maxDuration": 10
+      "schedule": "0 0 * * *"
     }
   ]
 } 
