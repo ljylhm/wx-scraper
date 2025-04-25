@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
+import { getCookies } from '@/lib/cookieStore';
 
 // 设置CORS头信息
 const corsHeaders = {
@@ -13,6 +14,7 @@ export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders });
 }
 
+
 /**
  * 保存文章到135编辑器的API
  * 接收内容和标题，将其发送到135编辑器进行保存
@@ -21,7 +23,7 @@ export async function POST(request: NextRequest) {
   try {
     // 从请求体中获取内容和标题
     const body = await request.json();
-    const { content, title, cookie } = body;
+    const { content, title } = body;
 
     if (!content) {
       return NextResponse.json(
@@ -37,19 +39,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 判断是否提供了cookie
-    if (!cookie) {
-      return NextResponse.json(
-        { 
-          error: '需要登录后才能保存文章', 
-          message: '请提供135编辑器的登录Cookie', 
-          needLogin: true 
-        },
-        { status: 401, headers: corsHeaders }
-      );
-    }
+    // 从缓存获取cookie
+    const cookieStrings = getCookies();
 
-    console.log(`开始保存文章: ${title}, 内容长度: ${content.length}`);
+    // 提取所有cookie，简化为name=value格式
+    const simplifiedCookies = cookieStrings.map(cookieStr => {
+      // 提取所有cookie字段，不仅仅是第一个name=value
+      return cookieStr.split(';')
+        .map(part => part.trim())
+        .filter(part => part.includes('='))
+        .join('; ');
+    }).join('; ');
+
+    console.log(`开始保存文章: ${title}, 内容长度: ${content.length}, Cookie长度: ${simplifiedCookies.length}`);
 
     // 创建URLSearchParams对象模拟表单数据
     const formData = new URLSearchParams();
@@ -68,9 +70,9 @@ export async function POST(request: NextRequest) {
           'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
           'Origin': 'https://www.135editor.com',
           'Referer': 'https://www.135editor.com/editor_styles/wxeditor',
-          'Cookie': cookie, // 使用传入的cookie
+          'Cookie': simplifiedCookies, // 使用从缓存获取的cookie
         },
-        timeout: 10000, // 10秒超时
+        timeout: 15000, // 15秒超时
       }
     );
 
@@ -79,7 +81,11 @@ export async function POST(request: NextRequest) {
     console.log('保存文章响应:', responseData);
 
     // 检查响应中是否包含登录页面内容
-    if (typeof responseData === 'string' && responseData.includes('登录您的账户')) {
+    if (typeof responseData === 'string' && (
+      responseData.includes('登录您的账户') || 
+      responseData.includes('login-submit') ||
+      responseData.includes('UserEmail')
+    )) {
       return NextResponse.json(
         { 
           error: '保存失败，需要登录', 
@@ -101,7 +107,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 返回成功响应
+
+    // 返回成功响应，包含文章ID
     return NextResponse.json({
       success: true,
       message: '文章保存成功',
