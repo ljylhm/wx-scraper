@@ -1,8 +1,9 @@
 {
   "crons": [
     {
-      "path": "/api/cron",
-      "schedule": "0 0 * * *"
+      "path": "/api/login135",
+      "schedule": "0 */6 * * *",
+      "maxDuration": 60
     }
   ]
 } 
