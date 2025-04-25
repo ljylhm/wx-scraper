@@ -8,7 +8,7 @@
 - 现代化UI界面，支持响应式设计
 - 基于React和TypeScript开发
 - 使用Tailwind CSS进行样式设计
-- 组件库基于Shadcn/UI
+- 组件库基于Shadcn/UI 
 
 ## 技术栈
 
@@ -74,4 +74,4 @@ pnpm start
 
 MIT
 # wx-scraper
-获取135编辑器 96编辑器模版
+获取135编辑器 96编辑器模版 提示
