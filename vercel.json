@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/login135": {
+    "src/app/api/login135/route": {
       "maxDuration": 10
     }
   },
