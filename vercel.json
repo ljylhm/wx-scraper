@@ -1,7 +1,7 @@
 {
   "functions": {
-    "login135": {
-      "maxDuration": 10
+    "src/app/api/**/*.ts": {
+      "maxDuration": 25
     }
   },
   "crons": [
