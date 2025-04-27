@@ -17,8 +17,6 @@ export const metadata: Metadata = {
   description: "一键提取并发送135编辑器模板",
   icons: {
     icon: "https://imgqn.smm.cn/production/usercenter/avatardMcZe20250427005647.png",
-    shortcut: "https://imgqn.smm.cn/production/usercenter/avatardMcZe20250427005647.png",
-    apple: "https://imgqn.smm.cn/production/usercenter/avatardMcZe20250427005647.png",
   },
 };
 
@@ -30,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <head>
-        <link rel="icon" href="https://imgqn.smm.cn/production/usercenter/avatardMcZe20250427005647.png" />
+        <link rel="shortcut icon" type="image/x-icon" href="https://imgqn.smm.cn/production/usercenter/avatardMcZe20250427005647.png" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
