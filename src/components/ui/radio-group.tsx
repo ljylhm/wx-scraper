@@ -9,20 +9,6 @@ interface RadioGroupProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string
 }
 
-const RadioGroup: React.FC<RadioGroupProps> = ({
-  value,
-  onValueChange,
-  className,
-  children,
-  ...props
-}) => {
-  return (
-    <div className={cn("grid gap-2", className)} {...props}>
-      {children}
-    </div>
-  )
-}
-
 interface RadioGroupItemProps extends React.InputHTMLAttributes<HTMLInputElement> {
   value: string
   id: string
