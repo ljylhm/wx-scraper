@@ -196,7 +196,10 @@ export default function EditPage() {
   };
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundImage: 'url(https://weball.baigekeji.com/tmp/static/pc-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+    <div 
+      className="flex min-h-screen bg-page-background" 
+      style={{ backgroundImage: 'url(https://weball.baigekeji.com/tmp/static/pc-bg.png)', backgroundSize: '100% 100%' }}
+    >     
       <div className="flex flex-1 justify-center items-center">
         <div className="w-full max-w-md mx-auto">
           <Card className="rounded-3xl overflow-hidden border-0 shadow-lg">

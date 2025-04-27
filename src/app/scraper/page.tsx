@@ -34,7 +34,7 @@ function ScraperContent() {
   const [showAdvancedOptions, setShowAdvancedOptions] = useState<boolean>(false);
   const [requestMethod, setRequestMethod] = useState<"GET" | "POST">("GET");
   const [apiUrl, setApiUrl] = useState<string>("");
-
+  
   // 如果URL中有参数，自动执行爬取
   useEffect(() => {
     if (initialUrl) {
@@ -178,7 +178,11 @@ function ScraperContent() {
   };
 
   return (
-    <div className="flex min-h-screen p-6" style={{ backgroundImage: 'url(https://weball.baigekeji.com/tmp/static/pc-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+    
+    <div  
+      className="flex min-h-screen bg-page-background" 
+      style={{ backgroundImage: 'url(https://weball.baigekeji.com/tmp/static/pc-bg.png)', backgroundSize: '100% 100%' }}
+    >
       <div className="flex flex-col w-full max-w-4xl mx-auto">
         <Card className="p-6 mb-6 rounded-xl shadow-lg">
           <h1 className="text-2xl font-bold mb-4 border-l-4 border-blue-500 pl-3">网页内容爬取工具</h1>
