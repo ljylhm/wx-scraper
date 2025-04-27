@@ -12,9 +12,11 @@ const PREVIEW_135_URL = "https://www.135editor.com/editor_styles/";
 
 // 进度状态类型定义
 type ProcessStep = 'idle' | 'scraping' | 'saving' | 'sending' | 'success' | 'error';
+// 编辑器类型
+type EditorType = "135" | "wechat";
 
 export default function EditPage() {
-  const [editorType] = useState<"135">("135");
+  const [editorType, setEditorType] = useState<EditorType>("135");
   const [templateUrl, setTemplateUrl] = useState<string>("");
   const [accountId, setAccountId] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -61,14 +63,28 @@ export default function EditPage() {
         text: '正在获取模板HTML内容...'
       });
       
+      // 根据编辑器类型设置不同的请求参数
+      let requestUrl = '';
+      let selector = '';
+      
+      if (editorType === '135') {
+        requestUrl = PREVIEW_135_URL + templateUrl.trim() + "?preview=1";
+        selector = '#fullpage';
+      } else if (editorType === 'wechat') {
+        requestUrl = templateUrl.trim();
+        selector = '.rich_media_content';
+      }
+      
+      addLog(`使用URL: ${requestUrl}, 选择器: ${selector}`);
+      
       const scrapeResponse = await fetch('/api/scrape', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          url: PREVIEW_135_URL + templateUrl.trim() + "?preview=1",
-          selector: '#fullpage' // 默认选择器
+          url: requestUrl,
+          selector: selector
         })
       });
       
@@ -88,7 +104,13 @@ export default function EditPage() {
         text: '正在保存模板内容到135编辑器...'
       });
       
-      const title = `模板导入-${new Date().toLocaleString()}`;
+      let title = '';
+      if (editorType === '135') {
+        title = `135模板导入-${new Date().toLocaleString()}`;
+      } else {
+        title = `公众号文章导入-${new Date().toLocaleString()}`;
+      }
+      
       const saveResponse = await fetch('/api/save135', {
         method: 'POST',
         headers: {
@@ -207,24 +229,39 @@ export default function EditPage() {
               {/* 模板选择部分 */}
               <div className="space-y-4">
                 <h2 className="text-lg font-bold border-l-4 border-blue-500 pl-2">模板选择</h2>
-                <div className="flex items-center space-x-4">
+                
+                <div className="flex items-center space-x-8">
                   <div className="flex items-center space-x-2">
                     <Checkbox 
                       id="editor135" 
-                      checked={true}
-                      disabled
+                      checked={editorType === "135"}
+                      onCheckedChange={() => setEditorType("135")}
                     />
                     <Label htmlFor="editor135">135编辑器</Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="editorWechat" 
+                      checked={editorType === "wechat"}
+                      onCheckedChange={() => setEditorType("wechat")}
+                    />
+                    <Label htmlFor="editorWechat">微信公众号</Label>
                   </div>
                 </div>
                 
                 <Input
                   className="rounded-md"
-                  placeholder="输入模板URL"
+                  placeholder={editorType === "135" ? "输入模板ID" : "输入公众号文章URL"}
                   value={templateUrl}
                   onChange={(e) => setTemplateUrl(e.target.value)}
                 />
-                <p className="text-sm text-gray-500">支持会员/付费全文模板！</p>
+                {editorType === "135" && (
+                  <p className="text-sm text-gray-500">支持会员/付费全文模板！</p>
+                )}
+                {editorType === "wechat" && (
+                  <p className="text-sm text-gray-500">输入微信公众号文章完整URL，例如https://mp.weixin.qq.com/s/xxx</p>
+                )}
               </div>
 
               {/* 接收账户部分 */}
