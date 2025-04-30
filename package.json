@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
+    "@prisma/client": "6.6.0",
     "@radix-ui/react-checkbox": "^1.2.3",
     "@radix-ui/react-label": "^2.1.4",
     "@radix-ui/react-slot": "^1.2.0",
@@ -37,9 +38,18 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.3.1",
+    "prisma": "6.6.0",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.19.4",
     "typescript": "^5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rainbowatcher/wx-scraper.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
