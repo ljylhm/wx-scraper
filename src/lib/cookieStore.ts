@@ -44,7 +44,7 @@ export async function getCookies(): Promise<string[]> {
     }
     
     const cookieData = JSON.parse(data) as { cookies: string[], timestamp: number };
-    
+    console.log("cookieData", cookieData);
     // 检查cookie是否过期（虽然Redis有TTL，这里做双重检查）
     if (Date.now() - cookieData.timestamp > COOKIE_TTL * 1000) {
       console.log('Cookie已过期，从Redis删除');
@@ -74,5 +74,4 @@ export async function clearCookies(): Promise<void> {
   } catch (error) {
     console.error('从Redis删除Cookie失败:', error);
   }
-} 
 } 

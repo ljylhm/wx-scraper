@@ -14,6 +14,34 @@ export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders });
 }
 
+/**
+ * 获取登录cookie
+ * 如果已有cookie则直接返回，否则调用登录接口获取新cookie
+ */
+async function getLoginCookies() {
+  // 尝试获取已有cookie
+  let cookieStrings = await getCookies();
+  
+  // 如果没有cookie，调用登录接口
+  if (!cookieStrings || cookieStrings.length === 0) {
+    console.log('Cookie不存在，自动调用登录接口');
+    try {
+      // 调用登录接口
+      const response = await axios.get(`${process.env.VERCEL_URL || 'http://localhost:3000'}/api/login135`);
+      
+      if (response.data && response.data.success && response.data.cookies) {
+        console.log('自动登录成功');
+        cookieStrings = response.data.cookies;
+      } else {
+        console.error('自动登录失败:', response.data?.error || '未知错误');
+      }
+    } catch (error) {
+      console.error('调用登录API失败:', error);
+    }
+  }
+  
+  return cookieStrings;
+}
 
 /**
  * 保存文章到135编辑器的API
@@ -39,8 +67,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 从缓存获取cookie
-    const cookieStrings = getCookies();
+    // 获取cookie，如果没有则自动登录
+    const cookieStrings = await getLoginCookies();
+    
+    if (!cookieStrings || cookieStrings.length === 0) {
+      return NextResponse.json(
+        { 
+          error: '无法获取登录状态', 
+          message: '自动登录失败，请先手动登录',
+          needLogin: true 
+        },
+        { status: 401, headers: corsHeaders }
+      );
+    }
 
     // 提取所有cookie，简化为name=value格式
     const simplifiedCookies = cookieStrings.map(cookieStr => {
@@ -78,7 +117,7 @@ export async function POST(request: NextRequest) {
 
     // 获取响应数据
     const responseData = response.data;
-    console.log('保存文章响应:', responseData);
+    // console.log('保存文章响应:', responseData);
 
     // 检查响应中是否包含登录页面内容
     if (typeof responseData === 'string' && (

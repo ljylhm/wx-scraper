@@ -1,0 +1,35 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model secret_key {
+  id               Int                @id @default(autoincrement())
+  secret_content   String             @unique @db.VarChar(255)
+  created_time     DateTime           @default(now()) @db.Timestamptz(6)
+  is_active        Boolean            @default(true)
+  use_count        Int                @default(0)
+  secret_usage_log secret_usage_log[]
+
+  @@index([is_active, created_time], map: "idx_secret_key_active")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model secret_usage_log {
+  id             Int        @id @default(autoincrement())
+  secret_id      Int
+  platform_type  String     @db.VarChar(50)
+  content        String
+  target_account String     @db.VarChar(255)
+  used_time      DateTime   @default(now()) @db.Timestamptz(6)
+  secret_key     secret_key @relation(fields: [secret_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([platform_type], map: "idx_platform_type")
+  @@index([secret_id, used_time], map: "idx_usage_secret_time")
+}
