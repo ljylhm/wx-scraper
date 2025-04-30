@@ -87,7 +87,6 @@ export default function LoginTestPage() {
       
       <Card className="mb-4 p-4 bg-yellow-50">
         <h2 className="text-lg font-semibold mb-2 text-yellow-700">登录方式说明</h2>
-        <p className="mb-2">此接口使用Puppeteer模拟真实浏览器自动登录，获取完整cookie。</p>
         <p className="text-sm text-gray-600">首次登录可能需要30-60秒，请耐心等待。</p>
       </Card>
       
