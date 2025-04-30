@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 从缓存获取cookie
-    const cookieStrings = getCookies();
+    const cookieStrings = await getCookies();
     
     if (cookieStrings.length === 0) {
       return NextResponse.json(

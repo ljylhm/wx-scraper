@@ -22,7 +22,7 @@ export async function storeCookies(cookies: string[]): Promise<void> {
       };
       
       // 存储到Redis，并设置过期时间
-      await redis.set(COOKIE_KEY, JSON.stringify(cookieData));
+      await redis.set(COOKIE_KEY,cookieData);
       await redis.expire(COOKIE_KEY, COOKIE_TTL);
       
       console.log('成功将Cookie存储到Redis');
@@ -36,14 +36,17 @@ export async function storeCookies(cookies: string[]): Promise<void> {
 export async function getCookies(): Promise<string[]> {
   try {
     // 从Redis获取数据
-    const data = await redis.get<string>(COOKIE_KEY);
+    const data = await redis.get<{
+      cookies: string[];
+      timestamp: number;
+    }>(COOKIE_KEY);
     
     if (!data) {
       console.log('Redis中未找到Cookie数据');
       return [];
     }
-    
-    const cookieData = JSON.parse(data) as { cookies: string[], timestamp: number };
+    console.log("data data", data);
+    const cookieData = data
     console.log("cookieData", cookieData);
     // 检查cookie是否过期（虽然Redis有TTL，这里做双重检查）
     if (Date.now() - cookieData.timestamp > COOKIE_TTL * 1000) {
