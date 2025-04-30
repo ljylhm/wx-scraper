@@ -46,6 +46,35 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/**
+ * 处理图片data-src属性，将data-src的值赋给src属性
+ * @param html HTML内容
+ * @returns 处理后的HTML内容
+ */
+function processImageDataSrc(html: string): string {
+  const $ = cheerio.load(html);
+  let imgCount = 0;
+  let processedCount = 0;
+  
+  // 查找所有img标签
+  $('img').each((_, element) => {
+    imgCount++;
+    const dataSrc = $(element).attr('data-src');
+    
+    // 如果存在data-src属性，将其值赋给src属性
+    if (dataSrc) {
+      $(element).attr('src', dataSrc);
+      processedCount++;
+    }
+  });
+  
+  if (processedCount > 0) {
+    console.log(`处理了${processedCount}/${imgCount}个图片的data-src属性`);
+  }
+  
+  return $.html();
+}
+
 // 统一处理爬取逻辑
 async function handleScrape(url: string | null, selector: string, type: ScrapeType = 'auto') {
   try {
@@ -82,9 +111,11 @@ async function handleScrape(url: string | null, selector: string, type: ScrapeTy
       const selectedContent = $(selector).html();
       if (selectedContent) {
         console.log(`使用选择器方式提取内容，长度: ${selectedContent.length}`);
+        // 处理图片data-src属性
+        const processedContent = processImageDataSrc(selectedContent);
         return NextResponse.json({ 
           success: true, 
-          content: selectedContent,
+          content: processedContent,
           source: url,
           usedSource: 'selector',
           usedSelector: selector
@@ -146,9 +177,11 @@ async function handleScrape(url: string | null, selector: string, type: ScrapeTy
               // 如果在提取内容中找到了匹配的选择器
               if (selectedContent) {
                 console.log(`在脚本内容中找到选择器 ${selector} 匹配的内容，长度:`, selectedContent.length);
+                // 处理图片data-src属性
+                const processedContent = processImageDataSrc(selectedContent);
                 return NextResponse.json({ 
                   success: true, 
-                  content: selectedContent,
+                  content: processedContent,
                   source: url,
                   usedSource: 'script-data',
                   usedSelector: selector
@@ -156,9 +189,11 @@ async function handleScrape(url: string | null, selector: string, type: ScrapeTy
               }
               
               // 如果没有找到匹配的选择器，返回完整的提取内容
+              // 处理图片data-src属性
+              const processedContent = processImageDataSrc(extractedContent);
               return NextResponse.json({ 
                 success: true, 
-                content: extractedContent,
+                content: processedContent,
                 source: url,
                 usedSource: 'script-data',
                 usedSelector: 'none'
@@ -188,9 +223,11 @@ async function handleScrape(url: string | null, selector: string, type: ScrapeTy
       const selectedContent = $(selector).html();
       if (selectedContent) {
         console.log(`脚本提取失败，使用选择器提取内容，长度: ${selectedContent.length}`);
+        // 处理图片data-src属性
+        const processedContent = processImageDataSrc(selectedContent);
         return NextResponse.json({ 
           success: true, 
-          content: selectedContent,
+          content: processedContent,
           source: url,
           usedSource: 'selector',
           usedSelector: selector
