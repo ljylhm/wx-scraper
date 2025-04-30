@@ -9,6 +9,7 @@ interface TabsProps extends React.HTMLAttributes<HTMLDivElement> {
   onValueChange?: (value: string) => void
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface TabsListProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 interface TabsTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
