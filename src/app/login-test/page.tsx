@@ -19,22 +19,22 @@ export default function LoginTestPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<LoginResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [cookieStorePath, setCookieStorePath] = useState<string>("");
+  const [redisInfo, setRedisInfo] = useState<string>("");
 
-  // 获取cookie保存位置
+  // 获取Redis信息
   useEffect(() => {
-    async function getCookieStorePath() {
+    async function getRedisInfo() {
       try {
         const response = await fetch('/api/cookie-path');
         if (response.ok) {
           const data = await response.json();
-          setCookieStorePath(data.path || "未知");
+          setRedisInfo(data.redisInfo || "Upstash Redis");
         }
       } catch (err) {
-        console.error("获取cookie保存路径失败:", err);
+        console.error("获取Redis信息失败:", err);
       }
     }
-    getCookieStorePath();
+    getRedisInfo();
   }, []);
 
   const handleLogin = async () => {
@@ -91,10 +91,10 @@ export default function LoginTestPage() {
         <p className="text-sm text-gray-600">首次登录可能需要30-60秒，请耐心等待。</p>
       </Card>
       
-      {cookieStorePath && (
+      {redisInfo && (
         <div className="mb-4 p-3 bg-blue-50 text-blue-700 rounded text-sm">
-          <p><strong>Cookie保存位置:</strong> {cookieStorePath}</p>
-          <p className="text-xs mt-1">Cookie以文件形式保存，服务器重启后仍然有效</p>
+          <p><strong>Cookie存储方式:</strong> {redisInfo}</p>
+          <p className="text-xs mt-1">Cookie存储在Redis中，跨服务器和实例共享，无需本地文件</p>
         </div>
       )}
       
