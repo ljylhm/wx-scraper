@@ -20,7 +20,7 @@ export async function OPTIONS() {
  */
 async function getLoginCookies() {
   // 尝试获取已有cookie
-  let cookieStrings = await getCookies();
+  let cookieStrings = await getCookies("135");
   
   // 如果没有cookie，调用登录接口
   if (!cookieStrings || cookieStrings.length === 0) {
