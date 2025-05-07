@@ -29,7 +29,6 @@ export async function GET() {
     } else {
       console.log('96微信编辑器登录失败，响应中未包含"登录成功"字样');
     }
-    
 
     console.log("responseData",responseData);
     // 获取所有的 Set-Cookie 头

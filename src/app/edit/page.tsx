@@ -9,16 +9,20 @@ import { Label } from "@/components/ui/label";
 import { QRCode } from "@/components/QRCode";
 
 const PREVIEW_135_URL = "https://www.135editor.com/editor_styles/";
+const PREVIEW_96_URL = "https://bj.96weixin.com/material/tpl/";
 
 // 进度状态类型定义
 type ProcessStep = 'idle' | 'scraping' | 'saving' | 'sending' | 'success' | 'error';
 // 编辑器类型
-type EditorType = "135" | "wechat";
+type EditorType = "135" | "wechat" | "96";
+// 接收编辑器类型
+type ReceiveEditorType = "135" | "96" | null;
 
 export default function EditPage() {
   const [editorType, setEditorType] = useState<EditorType>("135");
   const [templateUrl, setTemplateUrl] = useState<string>("");
-  const [accountId, setAccountId] = useState<string>("");
+  const [receiveEditorType, setReceiveEditorType] = useState<ReceiveEditorType>("135");
+  const [receiverId, setReceiverId] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{type: 'success' | 'error' | 'info', text: string} | null>(null);
   
@@ -36,12 +40,20 @@ export default function EditPage() {
     if (!templateUrl.trim()) {
       setMessage({
         type: 'error',
-        text: '请输入模板URL'
+        text: '请输入模板ID'
       });
       return;
     }
 
-    if (!accountId.trim()) {
+    if (!receiveEditorType) {
+      setMessage({
+        type: 'error',
+        text: '请选择接收编辑器'
+      });
+      return;
+    }
+
+    if (!receiverId.trim()) {
       setMessage({
         type: 'error',
         text: '请输入接收账户ID'
@@ -73,6 +85,9 @@ export default function EditPage() {
       } else if (editorType === 'wechat') {
         requestUrl = templateUrl.trim();
         selector = '.rich_media_content';
+      } else if (editorType === '96') {
+        requestUrl = PREVIEW_96_URL + templateUrl.trim() + ".html";
+        selector = '.detail_block'; // 96微信编辑器模板内容选择器
       }
       
       addLog(`使用URL: ${requestUrl}, 选择器: ${selector}`);
@@ -96,81 +111,132 @@ export default function EditPage() {
       
       addLog("模板HTML内容获取成功，内容长度: " + scrapeResult.content.length);
       
-      // 步骤2: 调用save135接口保存内容
+      // 步骤2: 调用保存接口，根据选择的编辑器类型选择接口
       setProcessStep('saving');
-      addLog("开始保存模板内容到135编辑器...");
-      setMessage({
-        type: 'info',
-        text: '正在保存模板内容到135编辑器...'
-      });
       
-      let title = '';
-      if (editorType === '135') {
-        title = `135模板导入-${new Date().toLocaleString()}`;
-      } else {
-        title = `公众号文章导入-${new Date().toLocaleString()}`;
-      }
+      const successResults = [];
       
-      const saveResponse = await fetch('/api/save135', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content: scrapeResult.content,
-          title: title
-        })
-      });
-      
-      const saveResult = await saveResponse.json();
-      
-      if (!saveResponse.ok || !saveResult.success) {
-        if (saveResult.needLogin) {
-          throw new Error("保存失败，请先登录135编辑器");
+      // 根据选择的接收编辑器类型处理
+      if (receiveEditorType === '135') {
+        try {
+          const title = `135模板导入-${new Date().toLocaleString()}`;
+          addLog("开始保存模板内容到135编辑器...");
+          
+          setMessage({
+            type: 'info',
+            text: `正在保存模板内容到135编辑器...`
+          });
+          
+          const saveResponse = await fetch('/api/save135', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              content: scrapeResult.content,
+              title: title
+            })
+          });
+          
+          const saveResult = await saveResponse.json();
+          
+          if (!saveResponse.ok || !(saveResult.success || saveResult.data)) {
+            if (saveResult.needLogin) {
+              throw new Error("保存失败，请先登录135编辑器");
+            }
+            throw new Error(saveResult.error || saveResult.message || "保存模板到135编辑器失败");
+          }
+          
+          // 从保存结果中提取模板ID
+          if (!saveResult.data || !saveResult.data.id) {
+            throw new Error("保存到135编辑器成功但未能获取模板ID");
+          }
+          
+          const templateId = saveResult.data.id;
+          addLog(`模板内容保存到135编辑器成功，获取到模板ID: ${templateId}`);
+          
+          // 调用send-template接口
+          setProcessStep('sending');
+          addLog(`开始将模板ID ${templateId} 发送给135编辑器用户 ${receiverId}...`);
+          
+          const sendResponse = await fetch('/api/send-template', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              id: templateId,
+              creator: receiverId.trim()
+            })
+          });
+          
+          const sendResult = await sendResponse.json();
+          
+          if (!sendResponse.ok || !sendResult.success) {
+            throw new Error(sendResult.error || sendResult.message || "模板发送到135编辑器失败");
+          }
+          
+          addLog(`模板发送给135编辑器用户成功，模板ID: ${templateId}`);
+          successResults.push(`135编辑器: 成功发送模板ID ${templateId} 到用户 ${receiverId}`);
+          
+        } catch (error) {
+          addLog(`135编辑器处理失败: ${error instanceof Error ? error.message : "未知错误"}`);
+          throw error;
         }
-        throw new Error(saveResult.error || saveResult.message || "保存模板内容失败");
-      }
-      
-      // 从保存结果中提取模板ID
-      if (!saveResult.data || !saveResult.data.id) {
-        throw new Error("保存成功但未能获取模板ID");
-      }
-      
-      const templateId = saveResult.data.id;
-      addLog(`模板内容保存成功，获取到模板ID: ${templateId}`);
-      
-      // 步骤3: 调用send-template接口将模板发送给指定用户
-      setProcessStep('sending');
-      addLog(`开始将模板ID ${templateId} 发送给用户 ${accountId}...`);
-      setMessage({
-        type: 'info',
-        text: '正在发送模板给指定用户...'
-      });
-      
-      const sendResponse = await fetch('/api/send-template', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id: templateId,
-          creator: accountId.trim()
-        })
-      });
-      
-      const sendResult = await sendResponse.json();
-      
-      if (!sendResponse.ok || !sendResult.success) {
-        throw new Error(sendResult.error || sendResult.message || "模板发送失败");
+      } else if (receiveEditorType === '96') {
+        try {
+          const title = `96微信编辑器导入-${new Date().toLocaleString()}`;
+          addLog("开始保存模板内容到96微信编辑器...");
+          
+          setMessage({
+            type: 'info',
+            text: `正在保存模板内容到96微信编辑器...`
+          });
+          
+          const saveResponse = await fetch('/api/save96', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              content: scrapeResult.content,
+              title: title,
+              to_user: receiverId.trim()
+            })
+          });
+          
+          const saveResult = await saveResponse.json();
+          
+          if (!saveResponse.ok || !(saveResult.success || saveResult.data)) {
+            if (saveResult.needLogin) {
+              throw new Error("保存失败，请先登录96微信编辑器");
+            }
+            throw new Error(saveResult.error || saveResult.message || "保存模板到96微信编辑器失败");
+          }
+          
+          // 从保存结果中提取模板ID
+          const templateId = saveResult.data?.info?.id || saveResult.data?.id || 'unknown';
+          
+          addLog(`模板内容保存到96微信编辑器成功，已保存至用户 ${receiverId}，模板ID: ${templateId}`);
+          successResults.push(`96微信编辑器: 成功保存模板ID ${templateId} 到用户 ${receiverId}`);
+          
+        } catch (error) {
+          addLog(`96微信编辑器处理失败: ${error instanceof Error ? error.message : "未知错误"}`);
+          throw error;
+        }
       }
       
       // 全部流程完成
       setProcessStep('success');
-      addLog(`模板发送成功，整个流程已完成，模板ID: ${templateId}`);
-      setMessage({
-        type: 'success',
-        text: `模板提取并发送成功，模板ID: ${templateId}，请到接收账户的"我的文章"中查看`
-      });
+      
+      if (successResults.length > 0) {
+        setMessage({
+          type: 'success',
+          text: successResults.join('；\n')
+        });
+      } else {
+        throw new Error("保存操作失败");
+      }
       
     } catch (error) {
       console.error("处理失败", error);
@@ -190,7 +256,7 @@ export default function EditPage() {
     const steps = [
       { key: 'scraping', label: '获取HTML' },
       { key: 'saving', label: '保存模板' },
-      { key: 'sending', label: '发送模板' }
+      { key: 'sending', label: '处理完成' }
     ];
     
     return (
@@ -230,8 +296,8 @@ export default function EditPage() {
               <div className="space-y-4">
                 <h2 className="text-lg font-bold border-l-4 border-blue-500 pl-2">模板选择</h2>
                 
-                <div className="flex items-center space-x-8">
-                  <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-4 flex-wrap">
+                  <div className="flex items-center space-x-2 mb-2">
                     <Checkbox 
                       id="editor135" 
                       checked={editorType === "135"}
@@ -240,7 +306,7 @@ export default function EditPage() {
                     <Label htmlFor="editor135">135编辑器</Label>
                   </div>
                   
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 mb-2">
                     <Checkbox 
                       id="editorWechat" 
                       checked={editorType === "wechat"}
@@ -248,11 +314,24 @@ export default function EditPage() {
                     />
                     <Label htmlFor="editorWechat">微信公众号</Label>
                   </div>
+                  
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Checkbox 
+                      id="editor96" 
+                      checked={editorType === "96"}
+                      onCheckedChange={() => setEditorType("96")}
+                    />
+                    <Label htmlFor="editor96">96微信编辑器</Label>
+                  </div>
                 </div>
                 
                 <Input
                   className="rounded-md"
-                  placeholder={editorType === "135" ? "输入模板ID" : "输入公众号文章URL"}
+                  placeholder={
+                    editorType === "135" ? "输入模板ID" : 
+                    editorType === "96" ? "输入模板ID" : 
+                    "输入公众号文章URL"
+                  }
                   value={templateUrl}
                   onChange={(e) => setTemplateUrl(e.target.value)}
                 />
@@ -262,27 +341,52 @@ export default function EditPage() {
                 {editorType === "wechat" && (
                   <p className="text-sm text-gray-500">输入微信公众号文章完整URL，例如https://mp.weixin.qq.com/s/xxx</p>
                 )}
+                {editorType === "96" && (
+                  <p className="text-sm text-gray-500">输入96微信编辑器模板ID，例如21658</p>
+                )}
               </div>
 
               {/* 接收账户部分 */}
               <div className="space-y-4">
                 <h2 className="text-lg font-bold border-l-4 border-blue-500 pl-2">接收账户</h2>
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="account135" 
-                      checked 
-                      disabled
-                    />
-                    <Label htmlFor="account135">135编辑器</Label>
+                
+                <div className="border rounded-md p-4 space-y-3">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium mb-1">选择接收编辑器：</p>
+                    
+                    <div className="flex items-center space-x-4 flex-wrap">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <Checkbox 
+                          id="receive135" 
+                          checked={receiveEditorType === "135"}
+                          onCheckedChange={() => setReceiveEditorType("135")}
+                        />
+                        <Label htmlFor="receive135">135编辑器</Label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2 mb-1">
+                        <Checkbox 
+                          id="receive96" 
+                          checked={receiveEditorType === "96"}
+                          onCheckedChange={() => setReceiveEditorType("96")}
+                        />
+                        <Label htmlFor="receive96">96微信编辑器</Label>
+                      </div>
+                    </div>
                   </div>
+                  
+                  {receiveEditorType && (
+                    <div>
+                      <Input
+                        id="receiverId"
+                        className="rounded-md"
+                        placeholder={`输入${receiveEditorType === "135" ? "135编辑器" : "96微信编辑器"}用户ID`}
+                        value={receiverId}
+                        onChange={(e) => setReceiverId(e.target.value)}
+                      />
+                    </div>
+                  )}
                 </div>
-                <Input
-                  className="rounded-md"
-                  placeholder="输入账户ID"
-                  value={accountId}
-                  onChange={(e) => setAccountId(e.target.value)}
-                />
               </div>
 
               {/* 进度指示器 - 仅在处理过程中显示 */}
