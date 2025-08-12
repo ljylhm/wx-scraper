@@ -2,8 +2,10 @@ import { Redis } from '@upstash/redis';
 
 // 初始化Redis客户端
 const redis = new Redis({
-  url: 'https://light-pheasant-31145.upstash.io',
-  token: 'AXmpAAIjcDFkY2Y0NzAxZDc4MzA0OGYxYTE1ZjViMjVlYjczYzM0MXAxMA',
+  // url: 'https://light-pheasant-31145.upstash.io',
+  url: 'https://steady-seahorse-10111.upstash.io',
+  // token: 'AXmpAAIjcDFkY2Y0NzAxZDc4MzA0OGYxYTE1ZjViMjVlYjczYzM0MXAxMA',
+  token: 'ASd_AAIjcDE1OGQ5Y2MxMzI5MDM0N2M3ODRhY2YwOWY2YzQ4Nzc2YXAxMA',
 });
 
 // 定义渠道类型
