@@ -18,7 +18,7 @@ export async function OPTIONS() {
  * 获取登录cookie
  * 如果已有cookie则直接返回，否则调用登录接口获取新cookie
  */
-async function getLoginCookies() {
+async function getLoginCookies(baseUrl?: string) {
   // 尝试获取已有cookie
   let cookieStrings = await getCookies("135");
   
@@ -27,7 +27,15 @@ async function getLoginCookies() {
     console.log('Cookie不存在，自动调用登录接口');
     try {
       // 调用登录接口
-      const response = await axios.get(`${process.env.VERCEL_URL || 'http://localhost:3000'}/api/login135`);
+      const origin =
+        baseUrl ||
+        (process.env.VERCEL_URL
+          ? (process.env.VERCEL_URL.startsWith('http')
+              ? process.env.VERCEL_URL
+              : `https://${process.env.VERCEL_URL}`)
+          : 'http://localhost:3000');
+      const loginUrl = new URL('/api/login135', origin).toString();
+      const response = await axios.get(loginUrl);
       
       if (response.data && response.data.success && response.data.cookies) {
         console.log('自动登录成功');
@@ -68,7 +76,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 获取cookie，如果没有则自动登录
-    const cookieStrings = await getLoginCookies();
+    const cookieStrings = await getLoginCookies(request.nextUrl.origin);
     
     if (!cookieStrings || cookieStrings.length === 0) {
       return NextResponse.json(
