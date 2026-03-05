@@ -435,7 +435,7 @@ export default function EditPage() {
       {/* 右侧说明部分 */}
       <div className="hidden lg:flex flex-1 flex-col justify-center items-center p-8">
         <div className="max-w-md text-center">
-          <h1 className="text-3xl font-bold text-green-500 mb-6">公众号模板提取</h1>
+          <h1 className="text-3xl font-bold text-green-500 mb-6">公众号模板提取New</h1>
           <p className="text-lg mb-6">
             多平台互通，A平台的模板可发送到A平台，也可以发送到B平台、C平台等。
           </p>
