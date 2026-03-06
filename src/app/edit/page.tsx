@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +26,6 @@ type CodePreview = {
 };
 
 export default function EditPage() {
-  const searchParams = useSearchParams();
   const [editorType, setEditorType] = useState<EditorType>("135");
   const [templateUrl, setTemplateUrl] = useState<string>("");
   const [receiveEditorType, setReceiveEditorType] = useState<ReceiveEditorType>("135");
@@ -48,11 +46,11 @@ export default function EditPage() {
   };
 
   useEffect(() => {
-    const code = searchParams.get("code");
+    const code = new URLSearchParams(window.location.search).get("code");
     if (code) {
       setAccessCode(code);
     }
-  }, [searchParams]);
+  }, []);
 
   useEffect(() => {
     const normalizedCode = accessCode.trim();
