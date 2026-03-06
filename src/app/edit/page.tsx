@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,12 +18,23 @@ type ProcessStep = 'idle' | 'scraping' | 'saving' | 'sending' | 'success' | 'err
 type EditorType = "135" | "wechat" | "96";
 // 接收编辑器类型
 type ReceiveEditorType = "135" | "96" | null;
+type CodePreview = {
+  valid: boolean;
+  remainingUses: number;
+  usedCount: number;
+  isPermanent: boolean;
+  reason?: string;
+};
 
 export default function EditPage() {
+  const searchParams = useSearchParams();
   const [editorType, setEditorType] = useState<EditorType>("135");
   const [templateUrl, setTemplateUrl] = useState<string>("");
   const [receiveEditorType, setReceiveEditorType] = useState<ReceiveEditorType>("135");
   const [receiverId, setReceiverId] = useState<string>("");
+  const [accessCode, setAccessCode] = useState<string>("");
+  const [codeCheckLoading, setCodeCheckLoading] = useState(false);
+  const [codePreview, setCodePreview] = useState<CodePreview | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{type: 'success' | 'error' | 'info', text: string} | null>(null);
   
@@ -35,8 +47,120 @@ export default function EditPage() {
     setDetailedLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${log}`]);
   };
 
+  useEffect(() => {
+    const code = searchParams.get("code");
+    if (code) {
+      setAccessCode(code);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const normalizedCode = accessCode.trim();
+    if (!normalizedCode) {
+      setCodePreview(null);
+      setCodeCheckLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        setCodeCheckLoading(true);
+        const response = await fetch('/api/access-code/check', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            code: normalizedCode
+          })
+        });
+
+        const result = await response.json();
+        if (cancelled) {
+          return;
+        }
+
+        if (!response.ok || !result.success) {
+          setCodePreview({
+            valid: false,
+            remainingUses: result.data?.remainingUses ?? 0,
+            usedCount: result.data?.usedCount ?? 0,
+            isPermanent: Boolean(result.data?.isPermanent),
+            reason: result.error || result.message || '访问码无效',
+          });
+          return;
+        }
+
+        setCodePreview({
+          valid: true,
+          remainingUses: result.data?.remainingUses ?? 0,
+          usedCount: result.data?.usedCount ?? 0,
+          isPermanent: Boolean(result.data?.isPermanent),
+        });
+      } catch {
+        if (!cancelled) {
+          setCodePreview({
+            valid: false,
+            remainingUses: 0,
+            usedCount: 0,
+            isPermanent: false,
+            reason: '访问码校验失败，请稍后重试',
+          });
+        }
+      } finally {
+        if (!cancelled) {
+          setCodeCheckLoading(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [accessCode]);
+
   const handleConfirm = async () => {
+    let extractRecordId: number | null = null;
+    let resultTemplateId = "";
+
+    const updateExtractRecordStatus = async (
+      status: "success" | "failed",
+      errorMessage?: string,
+      templateId?: string
+    ) => {
+      if (!extractRecordId) {
+        return;
+      }
+
+      try {
+        await fetch('/api/extract-records/update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: extractRecordId,
+            status,
+            errorMessage,
+            resultTemplateId: templateId,
+          })
+        });
+      } catch {
+        addLog("提取记录状态更新失败");
+      }
+    };
+
     // 表单验证
+    if (!accessCode.trim()) {
+      setMessage({
+        type: 'error',
+        text: '请输入临时访问码'
+      });
+      return;
+    }
+
     if (!templateUrl.trim()) {
       setMessage({
         type: 'error',
@@ -64,11 +188,69 @@ export default function EditPage() {
     // 重置状态
     setLoading(true);
     setMessage(null);
-    setProcessStep('scraping');
     setDetailedLogs([]);
+    setProcessStep('idle');
     
     try {
+      const extractionId = (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")
+        ? crypto.randomUUID()
+        : `ext-${Date.now()}`;
+
+      try {
+        const startRecordResponse = await fetch('/api/extract-records/start', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            extractionId,
+            accessCode: accessCode.trim(),
+            editorType,
+            templateCode: templateUrl.trim(),
+            receiverEditorType: receiveEditorType,
+            receiverId: receiverId.trim(),
+          })
+        });
+        const startRecordResult = await startRecordResponse.json();
+        if (startRecordResponse.ok && startRecordResult.success && startRecordResult.data?.id) {
+          extractRecordId = Number(startRecordResult.data.id);
+        } else {
+          addLog("提取记录创建失败，继续执行主流程");
+        }
+      } catch {
+        addLog("提取记录创建失败，继续执行主流程");
+      }
+
+      addLog("开始校验临时访问码...");
+      const codeResponse = await fetch('/api/access-code/consume', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          code: accessCode.trim()
+        })
+      });
+
+      const codeResult = await codeResponse.json();
+      if (!codeResponse.ok || !codeResult.success) {
+        throw new Error(codeResult.error || codeResult.message || "临时访问码无效");
+      }
+
+      setCodePreview({
+        valid: true,
+        remainingUses: codeResult.data?.remainingUses ?? 0,
+        usedCount: codeResult.data?.usedCount ?? 0,
+        isPermanent: Boolean(codeResult.data?.isPermanent),
+      });
+      if (codeResult.data?.isPermanent) {
+        addLog(`访问码校验通过（永久有效），已累计使用 ${codeResult.data?.usedCount ?? 0} 次`);
+      } else {
+        addLog(`访问码校验通过，已使用 ${codeResult.data?.usedCount ?? 0}/2 次，剩余 ${codeResult.data?.remainingUses ?? 0} 次`);
+      }
+
       // 步骤1: 调用scrape接口获取模板HTML内容
+      setProcessStep('scraping');
       addLog(`开始获取模板HTML内容...编辑器类型: ${editorType}`);
       setMessage({
         type: 'info',
@@ -153,6 +335,7 @@ export default function EditPage() {
           }
           
           const templateId = saveResult.data.id;
+          resultTemplateId = String(templateId);
           addLog(`模板内容保存到135编辑器成功，获取到模板ID: ${templateId}`);
           
           // 调用send-template接口
@@ -216,6 +399,7 @@ export default function EditPage() {
           
           // 从保存结果中提取模板ID
           const templateId = saveResult.data?.info?.id || saveResult.data?.id || 'unknown';
+          resultTemplateId = String(templateId);
           
           addLog(`模板内容保存到96微信编辑器成功，已保存至用户 ${receiverId}，模板ID: ${templateId}`);
           successResults.push(`96微信编辑器: 成功保存模板ID ${templateId} 到用户 ${receiverId}`);
@@ -230,6 +414,7 @@ export default function EditPage() {
       setProcessStep('success');
       
       if (successResults.length > 0) {
+        await updateExtractRecordStatus("success", undefined, resultTemplateId || undefined);
         setMessage({
           type: 'success',
           text: successResults.join('；\n')
@@ -240,6 +425,7 @@ export default function EditPage() {
       
     } catch (error) {
       console.error("处理失败", error);
+      await updateExtractRecordStatus("failed", error instanceof Error ? error.message : "未知错误");
       setProcessStep('error');
       addLog(`错误: ${error instanceof Error ? error.message : "未知错误"}`);
       setMessage({
@@ -295,6 +481,25 @@ export default function EditPage() {
               {/* 模板选择部分 */}
               <div className="space-y-4">
                 <h2 className="text-lg font-bold border-l-4 border-blue-500 pl-2">模板选择</h2>
+
+                <Input
+                  className="rounded-md"
+                  placeholder="输入临时访问码（每个码最多使用2次）"
+                  value={accessCode}
+                  onChange={(e) => setAccessCode(e.target.value)}
+                />
+                <p className="text-sm text-gray-500">可通过分享链接自动带入，例如 /edit?code=ABCD12</p>
+                {codeCheckLoading && <p className="text-sm text-blue-600">正在校验访问码...</p>}
+                {!codeCheckLoading && codePreview?.valid && (
+                  <p className="text-sm text-green-600">
+                    {codePreview.isPermanent
+                      ? `访问码有效（永久有效），已累计使用 ${codePreview.usedCount} 次`
+                      : `访问码有效：已使用 ${codePreview.usedCount}/2 次，剩余 ${codePreview.remainingUses} 次`}
+                  </p>
+                )}
+                {!codeCheckLoading && codePreview && !codePreview.valid && (
+                  <p className="text-sm text-red-600">访问码无效：{codePreview.reason || "请检查后重试"}</p>
+                )}
                 
                 <div className="flex items-center space-x-4 flex-wrap">
                   <div className="flex items-center space-x-2 mb-2">
@@ -423,7 +628,7 @@ export default function EditPage() {
               <Button 
                 className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md"
                 onClick={handleConfirm}
-                disabled={loading}
+                disabled={loading || codeCheckLoading || Boolean(accessCode.trim() && codePreview && !codePreview.valid)}
               >
                 {loading ? '处理中...' : '确认'}
               </Button>
