@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/auto-login/tick",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 } 
