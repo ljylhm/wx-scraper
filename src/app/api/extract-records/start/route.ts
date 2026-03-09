@@ -10,9 +10,20 @@ function getClientIp(request: Request): string {
   return request.headers.get("x-real-ip") || "unknown";
 }
 
+function resolveSenderAccount(receiverEditorType: string): string {
+  if (receiverEditorType === "135") {
+    return process.env.LOGIN_135_EMAIL || "";
+  }
+  if (receiverEditorType === "96") {
+    return process.env.LOGIN_96_PHONE || "";
+  }
+  return "";
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const receiverEditorType = String(body?.receiverEditorType || "");
 
     const record = await createExtractRecord({
       extractionId: String(body?.extractionId || `${Date.now()}`),
@@ -20,7 +31,9 @@ export async function POST(request: Request) {
       accessCode: String(body?.accessCode || ""),
       editorType: String(body?.editorType || ""),
       templateCode: String(body?.templateCode || ""),
-      receiverEditorType: String(body?.receiverEditorType || ""),
+      templateSourceUrl: String(body?.templateSourceUrl || ""),
+      senderAccount: resolveSenderAccount(receiverEditorType),
+      receiverEditorType,
       receiverId: String(body?.receiverId || ""),
     });
 

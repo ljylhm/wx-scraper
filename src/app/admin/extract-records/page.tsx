@@ -15,6 +15,8 @@ type ExtractRecord = {
   accessCode: string;
   editorType: string;
   templateCode: string;
+  templateSourceUrl?: string;
+  senderAccount?: string;
   receiverEditorType: string;
   receiverId: string;
   status: "processing" | "success" | "failed";
@@ -262,6 +264,8 @@ export default function ExtractRecordsAdminPage() {
                 <th className="p-3">IP</th>
                 <th className="p-3">提取码</th>
                 <th className="p-3">模板编号</th>
+                <th className="p-3">模板链接</th>
+                <th className="p-3">发送账号</th>
                 <th className="p-3">接收账号</th>
                 <th className="p-3">状态</th>
                 <th className="p-3">结果模板ID</th>
@@ -271,7 +275,7 @@ export default function ExtractRecordsAdminPage() {
             <tbody>
               {data.items.length === 0 ? (
                 <tr>
-                  <td className="p-6 text-center text-gray-500" colSpan={8}>
+                  <td className="p-6 text-center text-gray-500" colSpan={10}>
                     暂无记录
                   </td>
                 </tr>
@@ -282,6 +286,21 @@ export default function ExtractRecordsAdminPage() {
                     <td className="p-3">{item.ip}</td>
                     <td className="p-3 font-mono">{item.accessCode}</td>
                     <td className="p-3">{item.templateCode}</td>
+                    <td className="p-3">
+                      {item.templateSourceUrl ? (
+                        <a
+                          href={item.templateSourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-700 underline"
+                        >
+                          打开链接
+                        </a>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td className="p-3">{item.senderAccount || "-"}</td>
                     <td className="p-3">{item.receiverEditorType}:{item.receiverId}</td>
                     <td className="p-3">{item.status}</td>
                     <td className="p-3">{item.resultTemplateId || "-"}</td>

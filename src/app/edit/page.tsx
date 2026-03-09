@@ -25,6 +25,17 @@ type CodePreview = {
   reason?: string;
 };
 
+function buildTemplateSourceUrl(editorType: EditorType, templateValue: string): string {
+  const trimmed = templateValue.trim();
+  if (editorType === "135") {
+    return `${PREVIEW_135_URL}${trimmed}?preview=1`;
+  }
+  if (editorType === "96") {
+    return `${PREVIEW_96_URL}${trimmed}.html`;
+  }
+  return trimmed;
+}
+
 export default function EditPage() {
   const [editorType, setEditorType] = useState<EditorType>("135");
   const [templateUrl, setTemplateUrl] = useState<string>("");
@@ -188,6 +199,7 @@ export default function EditPage() {
     setMessage(null);
     setDetailedLogs([]);
     setProcessStep('idle');
+    const templateSourceUrl = buildTemplateSourceUrl(editorType, templateUrl);
     
     try {
       const extractionId = (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")
@@ -205,6 +217,7 @@ export default function EditPage() {
             accessCode: accessCode.trim(),
             editorType,
             templateCode: templateUrl.trim(),
+            templateSourceUrl,
             receiverEditorType: receiveEditorType,
             receiverId: receiverId.trim(),
           })
@@ -256,17 +269,14 @@ export default function EditPage() {
       });
       
       // 根据编辑器类型设置不同的请求参数
-      let requestUrl = '';
+      let requestUrl = templateSourceUrl;
       let selector = '';
       
       if (editorType === '135') {
-        requestUrl = PREVIEW_135_URL + templateUrl.trim() + "?preview=1";
         selector = '#fullpage';
       } else if (editorType === 'wechat') {
-        requestUrl = templateUrl.trim();
         selector = '.rich_media_content';
       } else if (editorType === '96') {
-        requestUrl = PREVIEW_96_URL + templateUrl.trim() + ".html";
         selector = '.detail_block'; // 96微信编辑器模板内容选择器
       }
       

@@ -20,6 +20,8 @@ export type ExtractRecord = {
   accessCode: string;
   editorType: string;
   templateCode: string;
+  templateSourceUrl: string;
+  senderAccount: string;
   receiverEditorType: string;
   receiverId: string;
   status: ExtractRecordStatus;
@@ -69,6 +71,8 @@ export async function createExtractRecord(input: {
   accessCode: string;
   editorType: string;
   templateCode: string;
+  templateSourceUrl?: string;
+  senderAccount?: string;
   receiverEditorType: string;
   receiverId: string;
 }): Promise<ExtractRecord> {
@@ -84,6 +88,8 @@ export async function createExtractRecord(input: {
     accessCode: input.accessCode.trim().toUpperCase(),
     editorType: input.editorType,
     templateCode: input.templateCode,
+    templateSourceUrl: input.templateSourceUrl || "",
+    senderAccount: input.senderAccount || "",
     receiverEditorType: input.receiverEditorType,
     receiverId: input.receiverId,
     status: "processing",
