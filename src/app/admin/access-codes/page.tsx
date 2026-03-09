@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 type AccessCodeItem = {
   code: string;
@@ -260,19 +261,17 @@ export default function AccessCodeAdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <AdminShell
+      title="访问码管理"
+      subtitle="创建与维护访问码，控制使用策略"
+      onLogout={handleLogout}
+      actions={
+        <Button variant="outline" onClick={loadCodes} disabled={listLoading}>
+          {listLoading ? "刷新中..." : "刷新"}
+        </Button>
+      }
+    >
       <div className="max-w-5xl mx-auto space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">访问码管理</h1>
-          <div className="space-x-2">
-            <Button variant="outline" onClick={loadCodes} disabled={listLoading}>
-              {listLoading ? "刷新中..." : "刷新"}
-            </Button>
-            <Button variant="outline" onClick={handleLogout}>
-              退出登录
-            </Button>
-          </div>
-        </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -362,6 +361,6 @@ export default function AccessCodeAdminPage() {
           </table>
         </Card>
       </div>
-    </div>
+    </AdminShell>
   );
 }

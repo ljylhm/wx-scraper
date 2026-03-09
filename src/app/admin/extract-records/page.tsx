@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 type ExtractRecord = {
   id: number;
@@ -191,15 +192,13 @@ export default function ExtractRecordsAdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <AdminShell
+      title="模板提取记录"
+      subtitle="按条件搜索每一次提取行为与结果"
+      onLogout={handleLogout}
+      actions={<Button variant="outline" onClick={() => loadRecords(1)} disabled={loading}>刷新</Button>}
+    >
       <div className="max-w-7xl mx-auto space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">模板提取记录</h1>
-          <div className="space-x-2">
-            <Button variant="outline" onClick={() => loadRecords(1)} disabled={loading}>刷新</Button>
-            <Button variant="outline" onClick={handleLogout}>退出登录</Button>
-          </div>
-        </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -306,6 +305,6 @@ export default function ExtractRecordsAdminPage() {
           </div>
         </div>
       </div>
-    </div>
+    </AdminShell>
   );
 }

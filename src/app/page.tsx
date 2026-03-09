@@ -1,128 +1,54 @@
-import Image from "next/image";
 import Link from "next/link";
+
+const quickEntrances = [
+  { title: "模板提取", href: "/edit", desc: "输入模板编号并转发到目标编辑器" },
+  { title: "管理后台", href: "/admin", desc: "管理员入口（访问码/记录/定时登录）" },
+  { title: "网页爬虫", href: "/scraper", desc: "调试抓取规则与内容选择器" },
+  { title: "登录调试", href: "/login-test", desc: "检查登录链路和Cookie写入" },
+  { title: "保存调试", href: "/save-test", desc: "验证保存流程与接口结果" },
+];
 
 export default function Home() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_0%_0%,#dbeafe,transparent_35%),radial-gradient(circle_at_95%_15%,#ffedd5,transparent_35%),linear-gradient(165deg,#f8fafc,#eef2ff_55%,#f8fafc)]">
+      <main className="max-w-6xl mx-auto px-6 py-10 md:py-14">
+        <section className="rounded-3xl bg-white/80 backdrop-blur border border-white shadow-xl p-8 md:p-10">
+          <p className="text-sm uppercase tracking-[0.2em] text-blue-700 font-semibold">WX Scraper Console</p>
+          <h1 className="mt-3 text-4xl md:text-5xl font-bold text-slate-900 leading-tight">
+            模板提取与分发管理平台
+          </h1>
+          <p className="mt-4 text-slate-600 text-base md:text-lg max-w-3xl leading-8">
+            一个统一入口，支持模板提取、跨编辑器分发、访问码管理、提取记录追踪和自动登录维护。
+          </p>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <Link
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="/edit"
-          >
-            编辑器模板
-          </Link>
-          <Link
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="/login-test"
-          >
-            登录测试
-          </Link>
-          <Link
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="/save-test"
-          >
-            保存文章
-          </Link>
-          <Link
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="/scraper"
-          >
-            网页爬虫
-          </Link>
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link
+              href="/edit"
+              className="px-5 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
+            >
+              进入模板提取
+            </Link>
+            <Link
+              href="/admin"
+              className="px-5 py-3 rounded-xl bg-slate-900 text-white font-medium hover:bg-slate-800 transition-colors"
+            >
+              进入管理后台
+            </Link>
+          </div>
+        </section>
+
+        <section className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {quickEntrances.map((item) => (
+            <Link key={item.href} href={item.href} className="group">
+              <article className="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm hover:shadow-lg hover:border-blue-200 transition-all h-full">
+                <h2 className="text-lg font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">{item.title}</h2>
+                <p className="text-sm text-slate-600 mt-2 leading-6">{item.desc}</p>
+                <p className="mt-4 text-sm font-medium text-blue-600">打开 →</p>
+              </article>
+            </Link>
+          ))}
+        </section>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }

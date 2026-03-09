@@ -11,8 +11,8 @@ export async function GET() {
     formData.append('type', 'html');
     formData.append('state', 'postmsg');
     formData.append('data[User][referer]', 'https://www.135editor.com/');
-    formData.append('data[User][email]', '15850225218');
-    formData.append('data[User][password]', '123456');
+    formData.append('data[User][email]', process.env.LOGIN_135_EMAIL || '15850225218');
+    formData.append('data[User][password]', process.env.LOGIN_135_PASSWORD || '123456');
     formData.append('data[User][remember_me]', '604800');
     
     // 发送登录请求
@@ -83,7 +83,7 @@ export async function GET() {
     
     // 存储cookie到全局缓存
     if (cookies.length > 0) {
-      storeCookies(cookies);
+      await storeCookies(cookies, '135');
       console.log('cookie已存储到缓存');
     } else {
       console.warn('没有获取到cookie');
@@ -119,7 +119,7 @@ export async function DELETE() {
   try {
     // 清除缓存的cookie
     const { clearCookies } = await import('@/lib/cookieStore');
-    clearCookies();
+    await clearCookies('135');
     
     return NextResponse.json({
       success: true,

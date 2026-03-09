@@ -73,6 +73,42 @@ export async function getCookies(channel: Channel = '135'): Promise<string[]> {
   }
 }
 
+export async function getCookieDetail(channel: Channel = '135'): Promise<{
+  channel: Channel;
+  cookies: string[];
+  timestamp: number;
+} | null> {
+  try {
+    const key = getCookieKey(channel);
+    const data = await redis.get<{
+      cookies: string[];
+      timestamp: number;
+    }>(key);
+
+    if (!data) {
+      return null;
+    }
+
+    return {
+      channel,
+      cookies: data.cookies || [],
+      timestamp: data.timestamp || 0,
+    };
+  } catch (error) {
+    console.error(`读取${channel}的Cookie详情失败:`, error);
+    return null;
+  }
+}
+
+export async function listCookieDetails(channels: Channel[] = ['135', '96']): Promise<Array<{
+  channel: Channel;
+  cookies: string[];
+  timestamp: number;
+}>> {
+  const result = await Promise.all(channels.map((channel) => getCookieDetail(channel)));
+  return result.filter((item): item is { channel: Channel; cookies: string[]; timestamp: number } => item !== null);
+}
+
 // 检查是否有有效的cookie
 export async function hasCookies(channel: Channel = '135'): Promise<boolean> {
   const cookies = await getCookies(channel);

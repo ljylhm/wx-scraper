@@ -6,8 +6,8 @@ export async function GET() {
     const url = 'https://bj.96weixin.com/login/phone';
     
     const formData = new URLSearchParams();
-    formData.append('phone', '15850225218');
-    formData.append('password', '123456');
+    formData.append('phone', process.env.LOGIN_96_PHONE || '15850225218');
+    formData.append('password', process.env.LOGIN_96_PASSWORD || '123456');
     formData.append('remember', '1');
     
     const response = await fetch(url, {
@@ -58,7 +58,7 @@ export async function GET() {
       // 将处理后的cookie重新组合
       processedCookie = essentialCookies.join('; ');
       // 使用cookieStore保存cookie
-      storeCookies(essentialCookies, '96');
+      await storeCookies(essentialCookies, '96');
     }
  
     // 将cookie和响应数据一起返回
