@@ -473,6 +473,144 @@
 
 .music-download-notice svg { flex: 0 0 auto; margin-top: 1px; color: var(--music-coral); }
 
+.music-download-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, .78);
+  backdrop-filter: blur(12px);
+  animation: music-modal-fade 180ms ease-out both;
+}
+
+.music-download-modal {
+  position: relative;
+  width: min(480px, 100%);
+  padding: 38px;
+  border: 1px solid rgba(200, 255, 46, .38);
+  color: #f3f1e9;
+  background:
+    radial-gradient(circle at 100% 0, rgba(255, 109, 74, .18), transparent 15rem),
+    #111210;
+  box-shadow: 0 30px 100px rgba(0, 0, 0, .72);
+  animation: music-modal-rise 260ms ease-out both;
+}
+
+.music-download-modal::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, .07);
+}
+
+.music-download-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.14);
+  color: #96988f;
+  background: transparent;
+  cursor: pointer;
+}
+
+.music-download-modal-icon {
+  width: 68px;
+  height: 68px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 22px;
+  border-radius: 50%;
+  color: #0a0a0a;
+  background: var(--music-acid);
+  box-shadow: 0 0 40px rgba(200, 255, 46, .14);
+}
+
+.music-download-modal-kicker {
+  color: var(--music-acid);
+  font-size: 9px;
+  letter-spacing: .22em;
+}
+
+.music-download-modal h2 {
+  margin: 8px 0 18px;
+  font-family: "Songti SC", "STSong", serif;
+  font-size: 38px;
+}
+
+.music-download-modal-file {
+  padding: 13px 0;
+  overflow-wrap: anywhere;
+  border-block: 1px solid rgba(255,255,255,.11);
+  color: #d7d5cd;
+  font-family: "Songti SC", "STSong", serif;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.music-download-modal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 24px;
+}
+
+.music-download-modal-meta span {
+  padding: 4px 7px;
+  color: #8e9187;
+  border: 1px solid rgba(255,255,255,.1);
+  font-size: 8px;
+  letter-spacing: .08em;
+}
+
+.music-download-modal-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.music-download-modal-actions button {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 0;
+  color: #0a0a0a;
+  background: var(--music-acid);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 750;
+}
+
+.music-download-modal-actions .music-download-share-button {
+  color: #f3f1e9;
+  border: 1px solid rgba(255,255,255,.22);
+  background: transparent;
+}
+
+.music-download-modal-help,
+.music-download-modal-status {
+  margin-top: 16px;
+  color: #7f8279;
+  font-size: 9px;
+  line-height: 1.65;
+}
+
+.music-download-modal-status {
+  padding: 9px 11px;
+  color: var(--music-acid);
+  border-left: 2px solid var(--music-acid);
+  background: rgba(200, 255, 46, .06);
+}
+
 .music-load-more {
   min-width: 180px;
   min-height: 50px;
@@ -536,6 +674,8 @@
 @keyframes music-record-spin { to { transform: rotate(360deg); } }
 @keyframes music-bar { from { transform: scaleY(.45); } to { transform: scaleY(1); } }
 @keyframes music-card-enter { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes music-modal-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes music-modal-rise { from { opacity: 0; transform: translateY(18px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
 @media (max-width: 900px) {
   .music-hero { grid-template-columns: 1fr; gap: 30px; padding-top: 58px; }
@@ -573,6 +713,9 @@
   .music-card h2 { min-height: auto; }
   .music-message-error { align-items: flex-start; flex-wrap: wrap; }
   .music-message-error button { width: 100%; margin-left: 50px; }
+  .music-download-modal { padding: 30px 22px 24px; }
+  .music-download-modal h2 { font-size: 32px; }
+  .music-download-modal-actions { grid-template-columns: 1fr; }
   .music-footer { align-items: flex-start; flex-direction: column; justify-content: center; gap: 8px; }
 }
 

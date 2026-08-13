@@ -5,17 +5,21 @@ import {
   Disc3,
   Download,
   ExternalLink,
+  FileAudio,
   Headphones,
   LoaderCircle,
   Music2,
   Play,
   Search,
+  Share2,
   Sparkles,
   Waves,
+  X,
 } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 import type { BilibiliSearchResult, BilibiliVideo } from "@/lib/bilibili";
+import { isMobileNavigator, supportsMobileFileShare } from "@/lib/mobileFileShare";
 
 import "./music.css";
 
@@ -33,6 +37,12 @@ interface DownloadState {
   status: "converting" | "success" | "error";
   receivedBytes?: number;
   message?: string;
+}
+
+interface CompletedDownload {
+  file: File;
+  blobUrl: string;
+  firstPartOnly: boolean;
 }
 
 function formatViews(views: number): string {
@@ -145,6 +155,25 @@ export default function MusicSearchPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [activeDownload, setActiveDownload] = useState<string | null>(null);
   const [downloadStates, setDownloadStates] = useState<Record<string, DownloadState>>({});
+  const [completedDownload, setCompletedDownload] = useState<CompletedDownload | null>(null);
+  const [shareMessage, setShareMessage] = useState("");
+
+  useEffect(() => {
+    if (!completedDownload) return;
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setCompletedDownload(null);
+    }
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleEscape);
+      URL.revokeObjectURL(completedDownload.blobUrl);
+    };
+  }, [completedDownload]);
 
   async function fetchResults(
     query: string,
@@ -262,22 +291,17 @@ export default function MusicSearchPage() {
         }
       }
 
-      const blobUrl = URL.createObjectURL(new Blob(chunks, { type: "audio/mpeg" }));
-      const anchor = document.createElement("a");
-      anchor.href = blobUrl;
-      anchor.download = filename;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1_000);
-
       const firstPartOnly = response.headers.get("x-bilibili-first-part-only") === "true";
+      const file = new File(chunks, filename, { type: "audio/mpeg" });
+      const blobUrl = URL.createObjectURL(file);
+      setShareMessage("");
+      setCompletedDownload({ file, blobUrl, firstPartOnly });
       setDownloadStates((current) => ({
         ...current,
         [video.bvid]: {
           status: "success",
           receivedBytes,
-          message: firstPartOnly ? "合集第 1P 已下载" : "MP3 已保存到下载目录",
+          message: firstPartOnly ? "合集第 1P 已转换" : "MP3 已转换完成",
         },
       }));
     } catch (caughtError) {
@@ -295,6 +319,45 @@ export default function MusicSearchPage() {
       setActiveDownload(null);
     }
   }
+
+  function handleSaveCompletedFile() {
+    if (!completedDownload) return;
+
+    const anchor = document.createElement("a");
+    anchor.href = completedDownload.blobUrl;
+    anchor.download = completedDownload.file.name;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setShareMessage("已交给浏览器保存，请到系统“下载”目录查看");
+  }
+
+  async function handleShareCompletedFile() {
+    if (!completedDownload || !supportsMobileFileShare(navigator, completedDownload.file)) {
+      return;
+    }
+
+    try {
+      await navigator.share({
+        files: [completedDownload.file],
+        title: completedDownload.file.name,
+      });
+      setShareMessage("已打开系统分享面板，请在其中选择微信");
+    } catch (caughtError) {
+      if (caughtError instanceof DOMException && caughtError.name === "AbortError") {
+        setShareMessage("已取消分享，文件仍可继续保存或分享");
+        return;
+      }
+      setShareMessage("当前浏览器分享失败，请先保存 MP3 后从文件管理器分享到微信");
+    }
+  }
+
+  const isMobile =
+    typeof navigator !== "undefined" && isMobileNavigator(navigator);
+  const canShareCompletedFile =
+    completedDownload !== null &&
+    typeof navigator !== "undefined" &&
+    supportsMobileFileShare(navigator, completedDownload.file);
 
   const showEmpty = hasSearched && !loading && !error && videos.length === 0;
 
@@ -447,6 +510,75 @@ export default function MusicSearchPage() {
         <span>仅用于搜索与发现，请尊重创作者权益</span>
         <span>PHASE 02 / STREAM &amp; CONVERT</span>
       </footer>
+
+      {completedDownload && (
+        <div
+          className="music-download-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setCompletedDownload(null);
+          }}
+        >
+          <section
+            className="music-download-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="music-download-title"
+          >
+            <button
+              type="button"
+              className="music-download-modal-close"
+              onClick={() => setCompletedDownload(null)}
+              aria-label="关闭下载结果"
+              autoFocus
+            >
+              <X size={19} />
+            </button>
+
+            <div className="music-download-modal-icon">
+              <FileAudio size={32} />
+            </div>
+            <p className="music-download-modal-kicker">YOUR MP3 IS READY</p>
+            <h2 id="music-download-title">转换完成</h2>
+            <p className="music-download-modal-file">{completedDownload.file.name}</p>
+            <div className="music-download-modal-meta">
+              <span>{(completedDownload.file.size / 1024 / 1024).toFixed(1)} MB</span>
+              <span>MP3 · 192 KBPS</span>
+              {completedDownload.firstPartOnly && <span>合集第 1P</span>}
+            </div>
+
+            <div className="music-download-modal-actions">
+              <button type="button" onClick={handleSaveCompletedFile}>
+                <Download size={18} />
+                保存 MP3
+              </button>
+              {canShareCompletedFile && (
+                <button
+                  type="button"
+                  className="music-download-share-button"
+                  onClick={() => void handleShareCompletedFile()}
+                >
+                  <Share2 size={18} />
+                  分享到微信
+                </button>
+              )}
+            </div>
+
+            {canShareCompletedFile ? (
+              <p className="music-download-modal-help">
+                点击后会打开手机系统分享面板，请在面板中选择微信和聊天对象。
+              </p>
+            ) : (
+              <p className="music-download-modal-help">
+                {isMobile
+                  ? "当前浏览器不支持直接分享 MP3；请先保存，再从文件管理器分享至微信。"
+                  : "文件分享仅在支持该功能的移动浏览器中显示。"}
+              </p>
+            )}
+            {shareMessage && <p className="music-download-modal-status">{shareMessage}</p>}
+          </section>
+        </div>
+      )}
     </main>
   );
 }
