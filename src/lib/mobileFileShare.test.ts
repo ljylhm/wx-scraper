@@ -22,6 +22,25 @@ test("isMobileNavigator detects mobile user agents and touch iPad", () => {
   );
 });
 
+test("isMobileNavigator detects touch HarmonyOS and OpenHarmony devices", () => {
+  assert.equal(
+    isMobileNavigator({
+      userAgent: "Mozilla/5.0 (Phone; OpenHarmony 5.0) AppleWebKit/537.36 ArkWeb/4.1 HuaweiBrowser/5.0",
+      maxTouchPoints: 5,
+      platform: "Linux armv8l",
+    }),
+    true,
+  );
+  assert.equal(
+    isMobileNavigator({
+      userAgent: "Mozilla/5.0 (HarmonyOS 5.0) AppleWebKit/537.36 ArkWeb/4.1",
+      maxTouchPoints: 0,
+      platform: "Linux x86_64",
+    }),
+    false,
+  );
+});
+
 test("supportsMobileFileShare requires mobile detection and canShare approval", () => {
   const file = new File(["audio"], "song.mp3", { type: "audio/mpeg" });
   assert.equal(
