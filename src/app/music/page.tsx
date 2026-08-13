@@ -29,6 +29,12 @@ interface SearchApiError {
   error?: string;
 }
 
+interface DownloadState {
+  status: "converting" | "success" | "error";
+  receivedBytes?: number;
+  message?: string;
+}
+
 function formatViews(views: number): string {
   if (views >= 100_000_000) return `${(views / 100_000_000).toFixed(1)}亿`;
   if (views >= 10_000) return `${(views / 10_000).toFixed(1)}万`;
@@ -44,7 +50,26 @@ function formatDate(timestamp: number): string {
   }).format(new Date(timestamp * 1_000));
 }
 
-function VideoCard({ video, index }: { video: BilibiliVideo; index: number }) {
+function VideoCard({
+  video,
+  index,
+  downloadState,
+  isAnyDownloading,
+  onDownload,
+}: {
+  video: BilibiliVideo;
+  index: number;
+  downloadState?: DownloadState;
+  isAnyDownloading: boolean;
+  onDownload: (video: BilibiliVideo) => void;
+}) {
+  const isConverting = downloadState?.status === "converting";
+  const receivedMegabytes = (
+    (downloadState?.receivedBytes ?? 0) /
+    1024 /
+    1024
+  ).toFixed(1);
+
   return (
     <article className="music-card" style={{ "--card-index": index } as React.CSSProperties}>
       <div className="music-card-cover">
@@ -77,12 +102,31 @@ function VideoCard({ video, index }: { video: BilibiliVideo; index: number }) {
             前往 Bilibili
             <ExternalLink size={15} />
           </a>
-          <button type="button" disabled title="MP3 转换将在下一阶段开放">
-            <Download size={15} />
-            转换 MP3
-            <small>即将开放</small>
+          <button
+            type="button"
+            onClick={() => onDownload(video)}
+            disabled={isAnyDownloading}
+            title={isAnyDownloading && !isConverting ? "请等待当前转换完成" : "转换并下载 MP3"}
+          >
+            {isConverting ? (
+              <LoaderCircle className="music-spin" size={15} />
+            ) : (
+              <Download size={15} />
+            )}
+            {isConverting ? `转换中 ${receivedMegabytes} MB` : "下载 MP3"}
+            <small>≤ 10 MIN</small>
           </button>
         </div>
+        {downloadState?.status === "success" && (
+          <p className="music-download-feedback music-download-success">
+            {downloadState.message || "MP3 已保存到下载目录"}
+          </p>
+        )}
+        {downloadState?.status === "error" && (
+          <p className="music-download-feedback music-download-error">
+            {downloadState.message || "转换失败，请稍后重试"}
+          </p>
+        )}
       </div>
     </article>
   );
@@ -99,6 +143,8 @@ export default function MusicSearchPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
+  const [activeDownload, setActiveDownload] = useState<string | null>(null);
+  const [downloadStates, setDownloadStates] = useState<Record<string, DownloadState>>({});
 
   async function fetchResults(
     query: string,
@@ -166,6 +212,90 @@ export default function MusicSearchPage() {
     void fetchResults(activeKeyword, page + 1, true);
   }
 
+  async function handleDownload(video: BilibiliVideo) {
+    if (activeDownload) return;
+
+    setActiveDownload(video.bvid);
+    setDownloadStates((current) => ({
+      ...current,
+      [video.bvid]: { status: "converting", receivedBytes: 0 },
+    }));
+
+    try {
+      const params = new URLSearchParams({ bvid: video.bvid });
+      const response = await fetch(`/api/bilibili/mp3?${params.toString()}`);
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as SearchApiError | null;
+        throw new Error(payload?.error || "MP3 转换失败，请稍后重试");
+      }
+
+      if (!response.body) throw new Error("浏览器无法读取 MP3 数据流");
+
+      const reader = response.body.getReader();
+      const chunks: BlobPart[] = [];
+      let receivedBytes = 0;
+      let lastReportedBytes = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(new Uint8Array(value));
+        receivedBytes += value.byteLength;
+
+        if (receivedBytes - lastReportedBytes >= 256 * 1024) {
+          lastReportedBytes = receivedBytes;
+          setDownloadStates((current) => ({
+            ...current,
+            [video.bvid]: { status: "converting", receivedBytes },
+          }));
+        }
+      }
+
+      const encodedFilename = response.headers.get("x-music-filename");
+      let filename = "bilibili-audio.mp3";
+      if (encodedFilename) {
+        try {
+          filename = decodeURIComponent(encodedFilename);
+        } catch {
+          filename = "bilibili-audio.mp3";
+        }
+      }
+
+      const blobUrl = URL.createObjectURL(new Blob(chunks, { type: "audio/mpeg" }));
+      const anchor = document.createElement("a");
+      anchor.href = blobUrl;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1_000);
+
+      const firstPartOnly = response.headers.get("x-bilibili-first-part-only") === "true";
+      setDownloadStates((current) => ({
+        ...current,
+        [video.bvid]: {
+          status: "success",
+          receivedBytes,
+          message: firstPartOnly ? "合集第 1P 已下载" : "MP3 已保存到下载目录",
+        },
+      }));
+    } catch (caughtError) {
+      setDownloadStates((current) => ({
+        ...current,
+        [video.bvid]: {
+          status: "error",
+          message:
+            caughtError instanceof Error
+              ? caughtError.message
+              : "MP3 转换失败，请稍后重试",
+        },
+      }));
+    } finally {
+      setActiveDownload(null);
+    }
+  }
+
   const showEmpty = hasSearched && !loading && !error && videos.length === 0;
 
   return (
@@ -216,7 +346,7 @@ export default function MusicSearchPage() {
           <div className="music-hints" aria-label="搜索特点">
             <span><Disc3 size={15} /> 视频结果</span>
             <span><Music2 size={15} /> 每页 12 条</span>
-            <span><Headphones size={15} /> MP3 功能预留</span>
+            <span><Headphones size={15} /> MP3 限 10 分钟</span>
           </div>
         </div>
 
@@ -281,8 +411,22 @@ export default function MusicSearchPage() {
             </div>
             <div className="music-grid">
               {videos.map((video, index) => (
-                <VideoCard key={`${video.bvid}-${index}`} video={video} index={index % 12} />
+                <VideoCard
+                  key={`${video.bvid}-${index}`}
+                  video={video}
+                  index={index % 12}
+                  downloadState={downloadStates[video.bvid]}
+                  isAnyDownloading={activeDownload !== null}
+                  onDownload={(selectedVideo) => void handleDownload(selectedVideo)}
+                />
               ))}
+            </div>
+            <div className="music-download-notice">
+              <Download size={16} />
+              <p>
+                仅支持 10 分钟以内的视频；多 P 合集默认下载第 1P。
+                请只下载和转换你有权处理的内容，并尊重创作者权益。
+              </p>
             </div>
             {hasMore && (
               <button
@@ -301,7 +445,7 @@ export default function MusicSearchPage() {
 
       <footer className="music-footer">
         <span>仅用于搜索与发现，请尊重创作者权益</span>
-        <span>PHASE 01 / SEARCH</span>
+        <span>PHASE 02 / STREAM &amp; CONVERT</span>
       </footer>
     </main>
   );

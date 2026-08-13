@@ -6,27 +6,23 @@ import {
   normalizeSearchResponse,
   parseSearchParams,
 } from "@/lib/bilibili";
+import {
+  BILIBILI_USER_AGENT,
+  getBilibiliVisitorCookie,
+} from "@/lib/bilibiliVisitor";
 
 export const runtime = "nodejs";
 export const maxDuration = 15;
 
 const BILIBILI_SEARCH_ENDPOINT =
   "https://api.bilibili.com/x/web-interface/search/type";
-const BILIBILI_VISITOR_ENDPOINT =
-  "https://api.bilibili.com/x/frontend/finger/spi";
-const USER_AGENT =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 const SEARCH_CACHE_TTL = 2 * 60 * 1_000;
-const VISITOR_COOKIE_TTL = 12 * 60 * 60 * 1_000;
 
 interface CacheEntry {
   expiresAt: number;
   data: BilibiliSearchResult;
 }
 
-let visitorCookie = "";
-let visitorCookieExpiresAt = 0;
-let visitorCookieRequest: Promise<string> | null = null;
 const searchCache = new Map<string, CacheEntry>();
 
 function errorResponse(message: string, status: number) {
@@ -53,44 +49,13 @@ function successResponse(
   );
 }
 
-async function getVisitorCookie(forceRefresh = false): Promise<string> {
-  if (!forceRefresh && visitorCookie && Date.now() < visitorCookieExpiresAt) {
-    return visitorCookie;
-  }
-
-  if (!forceRefresh && visitorCookieRequest) return visitorCookieRequest;
-
-  visitorCookieRequest = axios
-    .get(BILIBILI_VISITOR_ENDPOINT, {
-      timeout: 5_000,
-      headers: { Accept: "application/json", "User-Agent": USER_AGENT },
-    })
-    .then((response) => {
-      const b3 = response.data?.data?.b_3;
-      const b4 = response.data?.data?.b_4;
-
-      if (typeof b3 !== "string" || typeof b4 !== "string") {
-        throw new Error("无法获取 Bilibili 访客标识");
-      }
-
-      visitorCookie = `buvid3=${b3}; buvid4=${b4}`;
-      visitorCookieExpiresAt = Date.now() + VISITOR_COOKIE_TTL;
-      return visitorCookie;
-    })
-    .finally(() => {
-      visitorCookieRequest = null;
-    });
-
-  return visitorCookieRequest;
-}
-
 async function requestBilibili(
   keyword: string,
   page: number,
   pageSize: number,
   forceVisitorRefresh = false,
 ) {
-  const cookie = await getVisitorCookie(forceVisitorRefresh);
+  const cookie = await getBilibiliVisitorCookie(forceVisitorRefresh);
 
   return axios.get(BILIBILI_SEARCH_ENDPOINT, {
     params: {
@@ -105,7 +70,7 @@ async function requestBilibili(
       "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.7",
       Cookie: cookie,
       Referer: "https://search.bilibili.com/",
-      "User-Agent": USER_AGENT,
+      "User-Agent": BILIBILI_USER_AGENT,
     },
     timeout: 8_000,
   });
